@@ -1,10 +1,28 @@
 @import 'tailwindcss';
-:root { color-scheme: dark; font-family: system-ui,sans-serif; background:#142321; color:#eff6ef }
+:root {
+  color-scheme: dark;
+  font-family: system-ui,sans-serif;
+  --canvas: #1f211b;
+  --surface: #2b2d26;
+  --edge: #52554d;
+  --control-edge: #85867a;
+  --ink: #fef4eb;
+  --muted: #c6a49f;
+  --rose: #d7857f;
+  --peach: #f7d1ab;
+  background: var(--canvas);
+  color: var(--ink);
+}
 h1,h2 { font-size:2.75rem; font-weight:750; line-height:1.18 }
-h2,header small { color:#b5f885 }
+h2 { color:var(--peach) } header small { color:var(--rose) }
 h2 span { font-size:1rem }
 h3 { font-weight:700; font-size:1.2rem; margin-bottom:.8rem }
-section { background:#20312e; border:1px solid #394943; border-radius:1rem; padding:1.2rem }
-p,footer,small { color:#c7d5cf } p:not(:empty) { margin-top:.5rem }
-input,button { border-radius:.5rem; padding:.7rem; width:100% } input { display:block; margin-top:.3rem; background:#142321; border:1px solid #63746d }
-button { background:#b5f885; color:#142321; font-weight:700; cursor:pointer } button:disabled { opacity:.55 } li+li { margin-top:.65rem } footer { font-size:.85rem }
+section { background:var(--surface); border:1px solid var(--edge); border-radius:1rem; padding:1.2rem }
+p,footer,small { color:var(--muted) } p:not(:empty) { margin-top:.5rem }
+input,button { border-radius:.5rem; padding:.7rem; width:100% }
+input { display:block; margin-top:.3rem; background:var(--canvas); border:1px solid var(--control-edge) }
+input::placeholder { color:var(--muted) }
+button { background:var(--rose); color:var(--canvas); font-weight:700; cursor:pointer }
+button:hover:not(:disabled) { background:#ec9997 }
+:focus-visible { outline:2px solid var(--peach); outline-offset:3px }
+button:disabled { opacity:.55 } li+li { margin-top:.65rem } footer { font-size:.85rem }
