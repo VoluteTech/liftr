@@ -6,7 +6,7 @@ Offline personal exercise ladder for bench press, deadlift, squat and dips. Each
 
 Epley estimates a one-rep max from every set: `kg × (1 + reps / 30)`, rounded to 0.1 kg. Each new 5 kg benchmark awards one Elo win; repeat and lighter days never lose points. Existing singles now also use Epley, so their recalculated ratings may change.
 
-Add a local ranking profile to see tiers. The best estimated max divided by current profile weight determines Bronze → Silver → Gold → Platinum → Diamond → Titan, each ascending from I to V. The initial game thresholds (not clinical or competition standards) are in `src/engine/ladder.ts`. Divisions evenly subdivide each tier; Titan uses the preceding tier's width and caps at V. Editing the profile recalculates tiers, not Elo. Unlogged exercises remain unranked.
+Add a local ranking profile to see tiers. The best estimated max divided by current profile weight determines Bronze → Silver → Gold → Platinum → Diamond → Titan, each ascending from V to I. The initial game thresholds (not clinical or competition standards) are in `src/engine/ladder.ts`. Divisions evenly subdivide each tier; Titan uses the preceding tier's width and caps at Titan I. Editing the profile recalculates tiers, not Elo. Unlogged exercises remain unranked.
 
 ## Run and check
 

@@ -1,8 +1,16 @@
 import { expect, test } from 'vitest'
-import { exerciseIds, tierFor } from './ladder'
+import { divisionPosition, rankProgress, exerciseIds, tierFor } from './ladder'
 const male = { sex: 'male', kg: 100 } as const
+test('overall rank averages fractional divisions before rounding', () => {
+  const positions = [50, 57].map(best => divisionPosition('bench', best, male))
+  expect(rankProgress(positions)).toEqual({ label: 'Silver V', next: 'Silver IV', percent: 50 })
+  expect(rankProgress([4.999])).toEqual({ label: 'Bronze I', next: 'Silver V', percent: 99 })
+  expect(rankProgress([5])).toEqual({ label: 'Silver V', next: 'Silver IV', percent: 0 })
+  expect(rankProgress([divisionPosition('bench', 500, male)])).toEqual({ label: 'Titan I', next: null, percent: 100 })
+  expect(rankProgress([])).toBeNull()
+})
 const tiers = ['Bronze','Silver','Gold','Platinum','Diamond','Titan']
-const divisions = ['I','II','III','IV','V']
+const divisions = ['V','IV','III','II','I']
 test.each(exerciseIds)('%s exposes all 30 divisions in order for both standards', exercise => {
   for (const sex of ['male','female'] as const) {
     const seen = new Set<string>()
@@ -11,8 +19,8 @@ test.each(exerciseIds)('%s exposes all 30 divisions in order for both standards'
   }
 })
 test('tier boundaries use relative load and exercise-specific standards', () => {
-  expect(tierFor('bench',49.9,male)).toBe('Bronze V')
-  expect(tierFor('bench',50,male)).toBe('Silver I')
-  expect(tierFor('bench',25,{...male,kg:50})).toBe('Silver I')
+  expect(tierFor('bench',49.9,male)).toBe('Bronze I')
+  expect(tierFor('bench',50,male)).toBe('Silver V')
+  expect(tierFor('bench',25,{...male,kg:50})).toBe('Silver V')
   expect(tierFor('deadlift',50,male)).toBe('Bronze III')
 })

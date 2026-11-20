@@ -1,24 +1,31 @@
 import { useState } from 'react'
 import { useProfile, useSets, saveProfile } from './db/index'
-import { exercises, exerciseIds, tierFor, type Exercise } from './engine/ladder'
-import { rank } from './engine/ranking'
+import { exercises, exerciseIds, divisionPosition, rankProgress, tierFor, type Exercise } from './engine/ladder'
+import { generalElo, rank } from './engine/ranking'
+import RankBar from './components/RankBar'
 import ExerciseLog from './features/ExerciseLog'
 
 export default function App() {
   const [selected, select] = useState<Exercise | null>(null)
   const [message, setMessage] = useState('')
   const rows = useSets(), profile = useProfile()
+
   if (selected) return <ExerciseLog key={selected} exercise={selected} back={() => select(null)} />
+  const ladder = exerciseIds.map(id => ({ id, last: rows && rank(rows.filter(row => row.exercise === id)).at(-1) }))
+  const progress = rankProgress(ladder.flatMap(({ id, last }) => profile && last ? [divisionPosition(id, last.best, profile)] : []))
+  const overall = generalElo(ladder.map(({ last }) => last?.rating))
   return <main className="max-w-xl mx-auto px-4 py-8 space-y-4">
-    <header><small>LIFTR / PERSONAL LADDER</small><h1>Your exercises</h1>
-      <p>Select an exercise to log a set or see its history.</p></header>
-    {exerciseIds.map(id => {
-      const last = rows && rank(rows.filter(row => row.exercise === id)).at(-1)
-      return <button key={id} className="exercise-card" onClick={() => select(id)}>
+    <header><small>LIFTR / OVERALL RANK</small>
+      <h1 className="text-[var(--peach)]">{!rows || profile === undefined ? 'Loading…' : progress?.label ?? (overall === null ? 'Unranked' : 'Profile needed')}</h1>
+      {overall !== null && <p>{overall} Elo</p>}
+      {progress ? <RankBar {...progress} /> : rows && profile !== undefined && <p>{overall === null ? 'Log your first set to start ranking.' : 'Add your bodyweight and strength standard under Ranking profile to reveal your rank.'}</p>}</header>
+    <h2 className="text-2xl">Your exercises</h2>
+    <div className="exercise-mosaic">
+      {ladder.map(({ id, last }) => <button key={id} className="exercise-card" onClick={() => select(id)}>
         <strong>{exercises[id]}</strong>
-        {!rows ? <small>Loading history…</small> : last ? <><span>{last.rating} Elo</span><small>{profile ? tierFor(id, last.best, profile) : 'Set your ranking profile below to see your tier.'}</small></> : <><span>Unranked</span><small>No sets logged yet · Log your first set →</small></>}
-      </button>
-    })}
+        {!rows ? <small>Loading history…</small> : last ? <><span>{profile ? tierFor(id, last.best, profile) : 'Profile needed'}</span><small>{last.rating} Elo</small></> : <><span>Unranked</span><small>Log your first set →</small></>}
+      </button>)}
+    </div>
     {profile !== undefined && <details><summary>Ranking profile{profile ? ` · ${profile.kg} kg` : ' · Not set'}</summary>
       <p>Elo rewards new strength benchmarks. Your tier compares your best estimated max with standards for your exercise, sex and current bodyweight.</p>
       <form className="grid gap-3 mt-3" onSubmit={async event => {

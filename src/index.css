@@ -15,7 +15,10 @@
 }
 main { padding-top:max(2rem, env(safe-area-inset-top)); padding-bottom:max(2rem, env(safe-area-inset-bottom)) }
 select,summary { min-height:44px; padding:.6rem; }
-.exercise-card { background:var(--surface); color:var(--ink); border:1px solid var(--edge); display:grid; gap:.25rem; text-align:left; padding:1rem }
+.exercise-mosaic { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,9rem),1fr)); gap:.75rem }
+@media (min-width:24rem) { .exercise-mosaic { grid-template-columns:repeat(2,minmax(0,1fr)) } }
+.exercise-card { background:var(--surface); color:var(--ink); border:1px solid var(--edge); border-radius:1rem; display:flex; flex-direction:column; align-items:flex-start; gap:.25rem; min-height:8rem; text-align:left; padding:1rem }
+.exercise-card strong { margin-bottom:auto; padding-bottom:.75rem }
 .exercise-card:hover:not(:disabled) { background:var(--canvas); border-color:var(--rose) }
 .exercise-card span { color:var(--peach) }
 h1,h2 { font-size:2.75rem; font-weight:750; line-height:1.18 }

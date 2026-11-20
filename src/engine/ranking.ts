@@ -1,5 +1,10 @@
 export interface SetInput { kg: number; reps: number }
 
+export function generalElo(ratings: readonly (number | undefined)[]) {
+  const ranked = ratings.filter((rating): rating is number => rating !== undefined)
+  return ranked.length ? Math.round(ranked.reduce((sum, rating) => sum + rating, 0) / ranked.length) : null
+}
+
 // Each 5 kg benchmark is a virtual opponent. Defeat each at most once.
 export function rank(sets: SetInput[]) {
   let best = 0, rating = 1000

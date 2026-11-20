@@ -1,13 +1,16 @@
 import { useState, type FormEvent } from 'react'
-import { exercises, type Exercise } from '../engine/ladder'
+import RankBar from '../components/RankBar'
+import { divisionPosition, rankProgress, exercises, type Exercise } from '../engine/ladder'
 import { LineChart, ResponsiveContainer, Line, YAxis, XAxis, Tooltip } from 'recharts'
-import { addSet, useSets } from '../db/index'
+import { addSet, useSets, useProfile } from '../db/index'
 import { rank } from '../engine/ranking'
 
 export default function ExerciseLog({ exercise, back }: { exercise: Exercise; back: () => void }) {
   const rows = useSets()?.filter(row => row.exercise === exercise)
   const progress = rank(rows ?? [])
   const last = progress.at(-1)
+  const profile = useProfile()
+  const division = profile && last ? rankProgress([divisionPosition(exercise, last.best, profile)]) : null
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
   async function save(event: FormEvent<HTMLFormElement>) {
@@ -25,7 +28,9 @@ export default function ExerciseLog({ exercise, back }: { exercise: Exercise; ba
   }
   return <main className="max-w-xl mx-auto px-4 py-8 space-y-4">
     <button onClick={back}>← All exercises</button><header><small>LIFTR / PERSONAL LADDER</small><h1>{exercises[exercise]}</h1></header>
-    <section><small>PERSONAL RATING</small><h2>{last?.rating ?? 1000} <span>pts</span></h2>
+    <section><small>EXERCISE RANK</small><h2>{!rows || profile === undefined ? 'Loading…' : division?.label ?? (last ? 'Profile needed' : 'Unranked')}</h2>
+      {last && <p>{last.rating} Elo</p>}
+      {division && <RankBar {...division} />}
       <p>{!last ? 'Start at 1000. Log your first set to earn your first rating.' : last.delta ? `+${last.delta} pts · Your estimated max reached new 5 kg benchmarks.` : '±0 pts · No new benchmark. Repeat and lighter sets never cost points.'}</p>
       <p>Next benchmark: {last?.next ?? 5} kg estimated max.</p></section>
     <section><h3>Log a set</h3><form onSubmit={save} className="grid grid-cols-2 gap-3">
