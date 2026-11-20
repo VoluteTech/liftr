@@ -1,32 +1,11 @@
-# React + TypeScript + Vite
+# Liftr
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+An offline bench log with a personal, Elo-inspired ladder. Each new 5 kg estimated-max benchmark counts as one win against a virtual opponent rated `1000 + 4 × benchmarkKg` (standard Elo expectation, K=32, rounded points). The same best always earns the same rating. Raw sets live in IndexedDB; clearing site data removes them.
 
-Currently, two official plugins are available:
+## Run
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+`npm ci`, then `npm run dev`. Use `npm test` for ranking tests. For Cloudflare Pages, select build command `npm run build` and output directory `dist`.
 
-## React Compiler
+## Offline acceptance check
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
-```
-
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Use `npm run build && npm run preview` on localhost, or open the deployed HTTPS site on your phone (plain LAN HTTP cannot register a service worker). Load once online and wait for the service worker to activate, then reload. Switch to airplane mode, log 60 kg × 5, and close and reopen the app offline. Expect a 70 kg estimated max, a positive rating change, and the set still in history. Repeat the set: expect zero extra points. Logging 65 kg × 5 should then earn points again.

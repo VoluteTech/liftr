@@ -1,7 +1,8 @@
-import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
-
-// https://vite.dev/config/
-export default defineConfig({
-  plugins: [react()],
-})
+import react from '@vitejs/plugin-react'
+import tailwind from '@tailwindcss/vite'
+import { VitePWA } from 'vite-plugin-pwa'
+export default defineConfig({ plugins: [react(), tailwind(), VitePWA({ registerType: 'autoUpdate', manifest: {
+  name: 'Liftr — Bench Log', short_name: 'Liftr', start_url: '/', display: 'standalone', theme_color: '#142321', background_color: '#142321',
+  icons: [192, 512].map(size => ({ src: `/liftr-${size}.png`, sizes: `${size}x${size}`, type: 'image/png' }))
+} })] })
