@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
 import { rank } from './ranking'
 test('first benchmark is a win against the 5 kg opponent', () => {
-  expect(rank([{kg:5,reps:1}])[0]).toMatchObject({estimate:5,rating:1017,delta:17,next:10})
+  expect(rank([{kg:5,reps:1}])[0]).toMatchObject({estimate:5.2,rating:1017,delta:17,next:10})
 })
 test('repeat and light days are neutral; new benchmarks count once', () => {
   const results = rank([60,60,40,65].map(kg => ({kg,reps:5})))

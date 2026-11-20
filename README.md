@@ -1,11 +1,15 @@
 # Liftr
 
-An offline bench log with a personal, Elo-inspired ladder. Each new 5 kg estimated-max benchmark counts as one win against a virtual opponent rated `1000 + 4 × benchmarkKg` (standard Elo expectation, K=32, rounded points). The same best always earns the same rating. Raw sets live in IndexedDB; clearing site data removes them.
+Offline personal exercise ladder for bench press, deadlift, squat and dips. Each exercise has its own history and Elo. Log total load in kg (for dips, bodyweight + added weight − assistance). The database upgrade assigns pre-existing sets to bench press without changing the raw history.
 
-## Run
+## Ranking
 
-`npm ci`, then `npm run dev`. Use `npm test` for ranking tests. For Cloudflare Pages, select build command `npm run build` and output directory `dist`.
+Epley estimates a one-rep max from every set: `kg × (1 + reps / 30)`, rounded to 0.1 kg. Each new 5 kg benchmark awards one Elo win; repeat and lighter days never lose points. Existing singles now also use Epley, so their recalculated ratings may change.
 
-## Offline acceptance check
+Add a local ranking profile to see tiers. The best estimated max divided by current profile weight determines Bronze → Silver → Gold → Platinum → Diamond → Titan, each ascending from I to V. The initial game thresholds (not clinical or competition standards) are in `src/engine/ladder.ts`. Divisions evenly subdivide each tier; Titan uses the preceding tier's width and caps at V. Editing the profile recalculates tiers, not Elo. Unlogged exercises remain unranked.
 
-Use `npm run build && npm run preview` on localhost, or open the deployed HTTPS site on your phone (plain LAN HTTP cannot register a service worker). Load once online and wait for the service worker to activate, then reload. Switch to airplane mode, log 60 kg × 5, and close and reopen the app offline. Expect a 70 kg estimated max, a positive rating change, and the set still in history. Repeat the set: expect zero extra points. Logging 65 kg × 5 should then earn points again.
+## Run and check
+
+`npm ci` then `npm run dev`. Run `npm run lint && npm run test && npm run build` before shipping. For Cloudflare Pages use build command `npm run build` and output directory `dist`.
+
+For an offline check, install the deployed HTTPS app on the iPhone Home Screen, open it online first, then reopen in airplane mode. Save 60 kg × 5 on bench, return to the ladder, then close and reopen. Bench should show 1247 Elo; previously empty exercises should still be unranked. Data stays on this device; Safari and the installed app may have separate storage.
