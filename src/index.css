@@ -17,7 +17,30 @@ main {
   padding-top: max(2rem, env(safe-area-inset-top));
   padding-bottom: max(2rem, env(safe-area-inset-bottom));
 }
-select,
+select[name="sex"] {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 0.3rem;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--control-edge);
+  border-radius: 0.5rem;
+  background-color: var(--surface);
+  color: var(--ink);
+  color-scheme: dark;
+  cursor: pointer;
+}
+select[name="sex"]:hover {
+  border-color: var(--rose);
+}
+select[name="sex"] option {
+  background-color: var(--surface);
+  color: var(--ink);
+}
+select[name="sex"]:invalid,
+select[name="sex"] option:disabled {
+  color: var(--muted);
+}
 summary {
   min-height: 44px;
   padding: 0.6rem;

@@ -23,6 +23,7 @@ programming, no calorie tracking.
 ## Commands
 
 ## Commands
+
 - `npm run dev` – dev server (use `-- --host` to test on phone over LAN)
 - `npm run build` – typecheck + production build
 - `npm run test` – Vitest
