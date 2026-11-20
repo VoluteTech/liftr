@@ -52,7 +52,7 @@ export default function App() {
           )
         )}
       </header>
-      <h2 className="text-2xl">Your exercises</h2>
+      <h2 className="text-2xl">Your greatest lifts</h2>
       <div className="exercise-mosaic">
         {ladder.map(({ id, last }) => (
           <button key={id} className="exercise-card" onClick={() => select(id)}>
