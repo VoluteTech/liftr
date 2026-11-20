@@ -56,7 +56,7 @@ export default function ExerciseLog({ exercise, back }: { exercise: Exercise; ba
         <p>Next benchmark: {last?.next ?? 5} kg estimated max.</p>
       </section>
       <section>
-        <h3>Log a set</h3>
+        <h3>Register a lift</h3>
         <form onSubmit={save} className="grid grid-cols-2 gap-3">
           {exercise === "dips" && (
             <p className="col-span-2">
