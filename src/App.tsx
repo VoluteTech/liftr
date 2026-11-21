@@ -1,14 +1,8 @@
 import { useState } from "react";
-import { useProfile, useSets, resetLocalData } from "./db/index";
-import {
-  exercises,
-  exerciseIds,
-  divisionPosition,
-  rankProgress,
-  tierFor,
-  type Exercise,
-  type Profile,
-} from "./engine/ladder";
+import { useProfile, useSets, useDashboardIds, resetLocalData } from "./db/index";
+import AddExercise from "./features/AddExercise";
+import { catalog, type Exercise } from "./lib/catalog";
+import { divisionPosition, rankProgress, isRanked, tierFor, type Profile } from "./engine/ladder";
 import { generalElo, rank } from "./engine/ranking";
 import RankBar from "./components/RankBar";
 import ExerciseLog from "./features/ExerciseLog";
@@ -88,29 +82,49 @@ function Dashboard({
   select: (exercise: Exercise) => void;
 }) {
   const rows = useSets();
-  const ladder = exerciseIds.map((id) => ({
+  const ids = useDashboardIds();
+  const ladder = (ids ?? []).map((id) => ({
     id,
-    last: rows && rank(rows.filter((row) => row.exercise === id)).at(-1),
+    last: !isRanked(id)
+      ? undefined
+      : rows && rank(rows.filter((row) => row.exercise === id)).at(-1),
   }));
   const progress = rankProgress(
-    ladder.flatMap(({ id, last }) => (last ? [divisionPosition(id, last.best, profile)] : [])),
+    ladder.flatMap(({ id, last }) =>
+      last && isRanked(id) ? [divisionPosition(id, last.best, profile)] : [],
+    ),
   );
   const overall = generalElo(ladder.map(({ last }) => last?.rating));
   return (
     <main className="max-w-xl mx-auto px-4 py-8 space-y-4">
       <header>
         <small>LIFTR / OVERALL RANK</small>
-        <h1 className="text-(--peach)">{!rows ? "Loading…" : (progress?.label ?? "Unranked")}</h1>
+        <h1 className="text-(--peach)">
+          {!rows || !ids ? "Loading…" : (progress?.label ?? "Unranked")}
+        </h1>
         {overall !== null && <p>{overall} Elo</p>}
-        {progress ? <RankBar {...progress} /> : rows && <p>Log your first set to start ranking.</p>}
+        {progress ? (
+          <RankBar {...progress} />
+        ) : (
+          rows && ids && <p>Log a set on a ranked exercise to start ranking.</p>
+        )}
       </header>
       <h2 className="text-2xl">Your greatest lifts</h2>
       <div className="exercise-mosaic">
         {ladder.map(({ id, last }) => (
           <button key={id} className="exercise-card" onClick={() => select(id)}>
-            <strong>{exercises[id]}</strong>
+            <strong>{catalog[id].name}</strong>
             {!rows ? (
               <small>Loading history…</small>
+            ) : !isRanked(id) ? (
+              <>
+                <span>Tracking only</span>
+                <small>
+                  {rows.some((row) => row.exercise === id)
+                    ? "View history →"
+                    : "Log your first set →"}
+                </small>
+              </>
             ) : last ? (
               <>
                 <span>{tierFor(id, last.best, profile)}</span>
@@ -125,6 +139,7 @@ function Dashboard({
           </button>
         ))}
       </div>
+      {ids && <AddExercise active={ids} />}
     </main>
   );
 }

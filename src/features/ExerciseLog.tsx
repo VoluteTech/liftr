@@ -1,17 +1,24 @@
 import { useState, type FormEvent } from "react";
 import RankBar from "../components/RankBar";
-import { divisionPosition, rankProgress, exercises, type Exercise } from "../engine/ladder";
+import { catalog, type Exercise } from "../lib/catalog";
+import { divisionPosition, isRanked, rankProgress } from "../engine/ladder";
 import { LineChart, ResponsiveContainer, Line, YAxis, XAxis, Tooltip } from "recharts";
 import { addSet, useSets, useProfile } from "../db/index";
-import { rank } from "../engine/ranking";
+import { estimateMax, rank } from "../engine/ranking";
 
 export default function ExerciseLog({ exercise, back }: { exercise: Exercise; back: () => void }) {
   const rows = useSets()?.filter((row) => row.exercise === exercise);
-  const progress = rank(rows ?? []);
+  const ranked = isRanked(exercise);
+  const progress = ranked ? rank(rows ?? []) : [];
+  const chart = ranked
+    ? progress
+    : (rows ?? []).map((row, i) => ({ set: i + 1, estimate: estimateMax(row) }));
   const last = progress.at(-1);
   const profile = useProfile();
   const division =
-    profile && last ? rankProgress([divisionPosition(exercise, last.best, profile)]) : null;
+    ranked && profile && last
+      ? rankProgress([divisionPosition(exercise, last.best, profile)])
+      : null;
 
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
@@ -24,7 +31,7 @@ export default function ExerciseLog({ exercise, back }: { exercise: Exercise; ba
     setBusy(true);
 
     try {
-      rank([input]);
+      estimateMax(input);
       await addSet(exercise, input);
       setNotice(`Saved ${input.kg} kg × ${input.reps} on this device.`);
     } catch {
@@ -38,26 +45,33 @@ export default function ExerciseLog({ exercise, back }: { exercise: Exercise; ba
       <button onClick={back}>← All exercises</button>
       <header>
         <small>LIFTR / PERSONAL LADDER</small>
-        <h1>{exercises[exercise]}</h1>
+        <h1>{catalog[exercise].name}</h1>
       </header>
-      <section>
-        <small>EXERCISE RANK</small>
-        <h2>
-          {!rows || profile === undefined
-            ? "Loading…"
-            : (division?.label ?? (last ? "Profile needed" : "Unranked"))}
-        </h2>
-        {last && <p>{last.rating} Elo</p>}
-        {division && <RankBar {...division} />}
-        <p>
-          {!last
-            ? "Start at 1000. Log your first set to earn your first rating."
-            : last.delta
-              ? `+${last.delta} pts · Your estimated max reached new 5 kg benchmarks.`
-              : "±0 pts · No new benchmark. Repeat and lighter sets never cost points."}
-        </p>
-        <p>Next benchmark: {last?.next ?? 5} kg estimated max.</p>
-      </section>
+      {!ranked ? (
+        <section>
+          <h3>Tracking only</h3>
+          <p>Log sets and follow your estimated max. This exercise does not affect rank or Elo.</p>
+        </section>
+      ) : (
+        <section>
+          <small>EXERCISE RANK</small>
+          <h2>
+            {!rows || profile === undefined
+              ? "Loading…"
+              : (division?.label ?? (last ? "Profile needed" : "Unranked"))}
+          </h2>
+          {last && <p>{last.rating} Elo</p>}
+          {division && <RankBar {...division} />}
+          <p>
+            {!last
+              ? "Start at 1000. Log your first set to earn your first rating."
+              : last.delta
+                ? `+${last.delta} pts · Your estimated max reached new 5 kg benchmarks.`
+                : "±0 pts · No new benchmark. Repeat and lighter sets never cost points."}
+          </p>
+          <p>Next benchmark: {last?.next ?? 5} kg estimated max.</p>
+        </section>
+      )}
       <section>
         <h3>Register a lift</h3>
         <form onSubmit={save} className="grid grid-cols-2 gap-3">
@@ -90,9 +104,9 @@ export default function ExerciseLog({ exercise, back }: { exercise: Exercise; ba
       </section>
       <section>
         <h3>Estimated max · kg</h3>
-        {last ? (
+        {chart.length > 0 ? (
           <ResponsiveContainer width="100%" height={160}>
-            <LineChart data={progress}>
+            <LineChart data={chart}>
               <XAxis dataKey="set" tickLine={false} stroke="var(--muted)" />
               <YAxis width={40} stroke="var(--muted)" />
               <Tooltip
@@ -128,7 +142,7 @@ export default function ExerciseLog({ exercise, back }: { exercise: Exercise; ba
                   <b>
                     {row.kg} kg × {row.reps}
                   </b>{" "}
-                  · +{progress[rows.length - 1 - i].delta} pts
+                  {ranked && `· +${progress[rows.length - 1 - i].delta} pts`}
                   <br />
                   <small>{new Date(row.time).toLocaleString()}</small>
                 </li>

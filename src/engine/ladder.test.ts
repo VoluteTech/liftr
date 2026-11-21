@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
-import { divisionPosition, rankProgress, exerciseIds, tierFor } from "./ladder";
+import { exerciseIds } from "../lib/catalog";
+import { divisionPosition, rankProgress, isRanked, tierFor } from "./ladder";
 const male = { sex: "male", kg: 100 } as const;
 test("overall rank averages fractional divisions before rounding", () => {
   const positions = [50, 57].map((best) => divisionPosition("bench", best, male));
@@ -15,13 +16,18 @@ test("overall rank averages fractional divisions before rounding", () => {
 });
 const tiers = ["Bronze", "Silver", "Gold", "Platinum", "Diamond", "Titan"];
 const divisions = ["V", "IV", "III", "II", "I"];
-test.each(exerciseIds)("%s exposes all 30 divisions in order for both standards", (exercise) => {
-  for (const sex of ["male", "female"] as const) {
-    const seen = new Set<string>();
-    for (let kg = 0; kg <= 400; kg++) seen.add(tierFor(exercise, kg, { kg: 100, sex }));
-    expect([...seen]).toEqual(tiers.flatMap((t) => divisions.map((d) => `${t} ${d}`)));
-  }
-});
+test("only calibrated exercises are ranked", () =>
+  expect(exerciseIds.filter(isRanked)).toEqual(["bench", "squat", "deadlift", "dips"]));
+test.each(exerciseIds.filter(isRanked))(
+  "%s exposes all 30 divisions in order for both standards",
+  (exercise) => {
+    for (const sex of ["male", "female"] as const) {
+      const seen = new Set<string>();
+      for (let kg = 0; kg <= 400; kg++) seen.add(tierFor(exercise, kg, { kg: 100, sex }));
+      expect([...seen]).toEqual(tiers.flatMap((t) => divisions.map((d) => `${t} ${d}`)));
+    }
+  },
+);
 test("tier boundaries use relative load and exercise-specific standards", () => {
   expect(tierFor("bench", 49.9, male)).toBe("Bronze I");
   expect(tierFor("bench", 50, male)).toBe("Silver V");
