@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useProfile, useSets, saveProfile } from "./db/index";
+import { useProfile, useSets, resetLocalData } from "./db/index";
 import {
   exercises,
   exerciseIds,
@@ -7,50 +7,102 @@ import {
   rankProgress,
   tierFor,
   type Exercise,
+  type Profile,
 } from "./engine/ladder";
 import { generalElo, rank } from "./engine/ranking";
 import RankBar from "./components/RankBar";
 import ExerciseLog from "./features/ExerciseLog";
+import ProfileForm from "./features/ProfileForm";
 
 export default function App() {
+  const profile = useProfile();
+  const [editing, edit] = useState(false);
   const [selected, select] = useState<Exercise | null>(null);
-  const [message, setMessage] = useState("");
-  const rows = useSets(),
-    profile = useProfile();
+  const [reset, setReset] = useState(() => new URLSearchParams(location.search).has("reset"));
+  const [resetError, setResetError] = useState("");
+  const dismissReset = () => {
+    const params = new URLSearchParams(location.search);
+    params.delete("reset");
+    history.replaceState(
+      null,
+      "",
+      location.pathname + (params.size ? `?${params}` : "") + location.hash,
+    );
+    setReset(false);
+  };
+  if (reset)
+    return (
+      <main className="max-w-sm mx-auto px-4 py-8 space-y-4">
+        <h1>Reset Liftr?</h1>
+        <p>This permanently deletes your profile and all lifts from this installation.</p>
+        <button
+          onClick={async () => {
+            try {
+              await resetLocalData();
+              dismissReset();
+            } catch {
+              setResetError("Reset failed. Please try again.");
+            }
+          }}
+        >
+          Delete local data
+        </button>
+        <button onClick={dismissReset}>Cancel</button>
+        {resetError && <p role="alert">{resetError}</p>}
+      </main>
+    );
+  if (profile === undefined) return null;
+  if (!profile?.name || editing) return <ProfileForm profile={profile} close={() => edit(false)} />;
+  return (
+    <>
+      <header
+        className="max-w-xl mx-auto px-4 flex items-center justify-between"
+        style={{ paddingTop: "max(1rem, env(safe-area-inset-top))" }}
+      >
+        <div className="text-3xl font-bold">Liftr</div>
+        <nav aria-label="Account">
+          <button
+            aria-label={`Edit profile for ${profile.name}`}
+            title="Edit profile"
+            style={{ width: 44, height: 44, padding: 0, borderRadius: "50%" }}
+            onClick={() => edit(true)}
+          >
+            {Array.from(profile.name)[0].toLocaleUpperCase()}
+          </button>
+        </nav>
+      </header>
+      {selected ? (
+        <ExerciseLog key={selected} exercise={selected} back={() => select(null)} />
+      ) : (
+        <Dashboard profile={profile} select={select} />
+      )}
+    </>
+  );
+}
 
-  if (selected) return <ExerciseLog key={selected} exercise={selected} back={() => select(null)} />;
+function Dashboard({
+  profile,
+  select,
+}: {
+  profile: Profile;
+  select: (exercise: Exercise) => void;
+}) {
+  const rows = useSets();
   const ladder = exerciseIds.map((id) => ({
     id,
     last: rows && rank(rows.filter((row) => row.exercise === id)).at(-1),
   }));
   const progress = rankProgress(
-    ladder.flatMap(({ id, last }) =>
-      profile && last ? [divisionPosition(id, last.best, profile)] : [],
-    ),
+    ladder.flatMap(({ id, last }) => (last ? [divisionPosition(id, last.best, profile)] : [])),
   );
   const overall = generalElo(ladder.map(({ last }) => last?.rating));
   return (
     <main className="max-w-xl mx-auto px-4 py-8 space-y-4">
       <header>
         <small>LIFTR / OVERALL RANK</small>
-        <h1 className="text-[var(--peach)]">
-          {!rows || profile === undefined
-            ? "Loading…"
-            : (progress?.label ?? (overall === null ? "Unranked" : "Profile needed"))}
-        </h1>
+        <h1 className="text-(--peach)">{!rows ? "Loading…" : (progress?.label ?? "Unranked")}</h1>
         {overall !== null && <p>{overall} Elo</p>}
-        {progress ? (
-          <RankBar {...progress} />
-        ) : (
-          rows &&
-          profile !== undefined && (
-            <p>
-              {overall === null
-                ? "Log your first set to start ranking."
-                : "Add your bodyweight and strength standard under Ranking profile to reveal your rank."}
-            </p>
-          )
-        )}
+        {progress ? <RankBar {...progress} /> : rows && <p>Log your first set to start ranking.</p>}
       </header>
       <h2 className="text-2xl">Your greatest lifts</h2>
       <div className="exercise-mosaic">
@@ -61,7 +113,7 @@ export default function App() {
               <small>Loading history…</small>
             ) : last ? (
               <>
-                <span>{profile ? tierFor(id, last.best, profile) : "Profile needed"}</span>
+                <span>{tierFor(id, last.best, profile)}</span>
                 <small>{last.rating} Elo</small>
               </>
             ) : (
@@ -73,55 +125,6 @@ export default function App() {
           </button>
         ))}
       </div>
-      {profile !== undefined && (
-        <details>
-          <summary>Ranking profile{profile ? ` · ${profile.kg} kg` : " · Not set"}</summary>
-          <p>
-            Elo rewards new strength benchmarks. Your tier compares your best estimated max with
-            standards for your exercise, sex and current bodyweight.
-          </p>
-          <form
-            className="grid gap-3 mt-3"
-            onSubmit={async (event) => {
-              event.preventDefault();
-              const data = new FormData(event.currentTarget);
-              const sex = data.get("sex");
-              if (sex !== "male" && sex !== "female") return;
-              try {
-                await saveProfile({ kg: Number(data.get("kg")), sex });
-                setMessage("Profile saved. Tiers updated.");
-              } catch {
-                setMessage("Could not save profile on this device.");
-              }
-            }}
-          >
-            <label>
-              Bodyweight (kg)
-              <input
-                name="kg"
-                required
-                type="number"
-                min="1"
-                max="600"
-                step="0.1"
-                defaultValue={profile?.kg}
-              />
-            </label>
-            <label>
-              Strength standard{" "}
-              <select name="sex" required defaultValue={profile?.sex ?? ""}>
-                <option value="" disabled>
-                  Choose standard
-                </option>
-                <option value="female">Female</option>
-                <option value="male">Male</option>
-              </select>
-            </label>
-            <button>Save ranking profile</button>
-            <p role="status">{message}</p>
-          </form>
-        </details>
-      )}
     </main>
   );
 }

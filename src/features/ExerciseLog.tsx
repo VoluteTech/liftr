@@ -12,14 +12,17 @@ export default function ExerciseLog({ exercise, back }: { exercise: Exercise; ba
   const profile = useProfile();
   const division =
     profile && last ? rankProgress([divisionPosition(exercise, last.best, profile)]) : null;
+
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
+
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy) return;
     const data = new FormData(event.currentTarget);
     const input = { kg: Number(data.get("kg")), reps: Number(data.get("reps")) };
     setBusy(true);
+
     try {
       rank([input]);
       await addSet(exercise, input);

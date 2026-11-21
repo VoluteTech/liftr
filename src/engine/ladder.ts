@@ -4,11 +4,13 @@ export const exercises = {
   squat: "Squat",
   dips: "Dips",
 } as const;
+
 export type Exercise = keyof typeof exercises;
 export const exerciseIds = Object.keys(exercises) as Exercise[];
 export type Profile = { kg: number; sex: "male" | "female" };
 const tiers = ["Bronze", "Silver", "Gold", "Platinum", "Diamond", "Titan"];
 const divisions = ["V", "IV", "III", "II", "I"];
+
 // Initial game calibration, not population percentiles. Each entry is the
 // e1RM/bodyweight threshold for division V of the corresponding tier.
 const standards = {
