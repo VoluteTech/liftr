@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import type { rankProgress } from "../engine/ladder";
 import RankCrest from "./RankCrest";
+import PromotionReveal from "./PromotionReveal";
 import RankBar from "./RankBar";
 
 type Division = NonNullable<ReturnType<typeof rankProgress>>;
@@ -74,6 +75,9 @@ export default function ExerciseRankReveal({
         </div>
       </div>
       <RankBar {...shown} />
+      {saved?.before && saved.before.label !== label && (
+        <PromotionReveal key={saved.id} before={saved.before.label} after={label} />
+      )}
     </div>
   );
 }
