@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import type { rankProgress } from "../engine/ladder";
+import RankCrest from "./RankCrest";
 import RankBar from "./RankBar";
 
 type Division = NonNullable<ReturnType<typeof rankProgress>>;
@@ -65,8 +66,13 @@ export default function ExerciseRankReveal({
       : division;
   return (
     <div ref={card}>
-      <h2 aria-live="polite">{shown.label}</h2>
-      <p>{elo} Elo</p>
+      <div className="flex items-center gap-3">
+        <RankCrest label={shown.label} />
+        <div>
+          <h2 aria-live="polite">{shown.label}</h2>
+          <p>{elo} Elo</p>
+        </div>
+      </div>
       <RankBar {...shown} />
     </div>
   );

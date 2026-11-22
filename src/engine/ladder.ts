@@ -1,6 +1,7 @@
 import type { Exercise } from "../lib/catalog";
 export type Profile = { kg: number; sex: "male" | "female" };
-const tiers = ["Bronze", "Silver", "Gold", "Platinum", "Diamond", "Titan"];
+const tiers = ["Bronze", "Silver", "Gold", "Platinum", "Diamond", "Titan"] as const;
+export type Tier = (typeof tiers)[number];
 const divisions = ["V", "IV", "III", "II", "I"];
 
 // Initial game calibration, not population percentiles. Each entry is the
@@ -27,7 +28,7 @@ export function divisionPosition(exercise: RankedExercise, best: number, profile
   return Math.min(position, tiers.length * divisions.length - 1);
 }
 
-const levels = tiers.flatMap((tier) => divisions.map((division) => `${tier} ${division}`));
+const levels = tiers.flatMap((tier) => divisions.map((division) => `${tier} ${division}` as const));
 
 export function rankProgress(positions: readonly number[]) {
   if (!positions.length) return null;

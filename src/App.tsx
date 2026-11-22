@@ -4,6 +4,7 @@ import AddExercise from "./features/AddExercise";
 import { catalog, type Exercise } from "./lib/catalog";
 import { divisionPosition, rankProgress, isRanked, tierFor, type Profile } from "./engine/ladder";
 import { generalElo, rank } from "./engine/ranking";
+import RankCrest from "./components/RankCrest";
 import RankBar from "./components/RankBar";
 import ExerciseLog from "./features/ExerciseLog";
 import ProfileForm from "./features/ProfileForm";
@@ -74,6 +75,15 @@ export default function App() {
   );
 }
 
+function TileRank({ label }: { label: ReturnType<typeof tierFor> }) {
+  return (
+    <span className="flex items-center gap-1">
+      <RankCrest label={label} compact />
+      {label}
+    </span>
+  );
+}
+
 function Dashboard({
   profile,
   select,
@@ -99,10 +109,15 @@ function Dashboard({
     <main className="max-w-xl mx-auto px-4 py-8 space-y-4">
       <header>
         <small>LIFTR / OVERALL RANK</small>
-        <h1 className="text-(--peach)">
-          {!rows || !ids ? "Loading…" : (progress?.label ?? "Unranked")}
-        </h1>
-        {overall !== null && <p>{overall} Elo</p>}
+        <div className="flex items-center gap-3">
+          {progress && <RankCrest label={progress.label} />}
+          <div>
+            <h1 className="text-(--peach)">
+              {!rows || !ids ? "Loading…" : (progress?.label ?? "Unranked")}
+            </h1>
+            {overall !== null && <p>{overall} Elo</p>}
+          </div>
+        </div>
         {progress ? (
           <RankBar {...progress} />
         ) : (
@@ -127,7 +142,7 @@ function Dashboard({
               </>
             ) : last ? (
               <>
-                <span>{tierFor(id, last.best, profile)}</span>
+                <TileRank label={tierFor(id, last.best, profile)} />
                 <small>{last.rating} Elo</small>
               </>
             ) : (
