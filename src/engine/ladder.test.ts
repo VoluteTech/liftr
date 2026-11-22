@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { exerciseIds } from "../lib/catalog";
-import { divisionPosition, rankProgress, isRanked, tierFor } from "./ladder";
+import { divisionPosition, rankProgress, strongestFirst, tierFor } from "./ladder";
 const male = { sex: "male", kg: 100 } as const;
 test("overall rank averages fractional divisions before rounding", () => {
   const positions = [50, 57].map((best) => divisionPosition("bench", best, male));
@@ -16,18 +16,21 @@ test("overall rank averages fractional divisions before rounding", () => {
 });
 const tiers = ["Bronze", "Silver", "Gold", "Platinum", "Diamond", "Titan"];
 const divisions = ["V", "IV", "III", "II", "I"];
-test("only calibrated exercises are ranked", () =>
-  expect(exerciseIds.filter(isRanked)).toEqual(["bench", "squat", "deadlift", "dips"]));
-test.each(exerciseIds.filter(isRanked))(
-  "%s exposes all 30 divisions in order for both standards",
-  (exercise) => {
-    for (const sex of ["male", "female"] as const) {
-      const seen = new Set<string>();
-      for (let kg = 0; kg <= 400; kg++) seen.add(tierFor(exercise, kg, { kg: 100, sex }));
-      expect([...seen]).toEqual(tiers.flatMap((t) => divisions.map((d) => `${t} ${d}`)));
-    }
-  },
-);
+test("sorts strongest position first and missing history last", () => {
+  expect(
+    [null, 0, 11, 10, 10.8]
+      .map((position) => ({ position }))
+      .sort(strongestFirst)
+      .map((x) => x.position),
+  ).toEqual([11, 10.8, 10, 0, null]);
+});
+test.each(exerciseIds)("%s exposes all 30 divisions in order for both standards", (exercise) => {
+  for (const sex of ["male", "female"] as const) {
+    const seen = new Set<string>();
+    for (let n = 0; n <= 6000; n++) seen.add(tierFor(exercise, n / 10, { kg: 100, sex }));
+    expect([...seen]).toEqual(tiers.flatMap((t) => divisions.map((d) => `${t} ${d}`)));
+  }
+});
 test("tier boundaries use relative load and exercise-specific standards", () => {
   expect(tierFor("bench", 49.9, male)).toBe("Bronze I");
   expect(tierFor("bench", 50, male)).toBe("Silver V");

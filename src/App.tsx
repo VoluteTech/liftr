@@ -2,7 +2,13 @@ import { useState } from "react";
 import { useProfile, useSets, useDashboardIds, resetLocalData } from "./db/index";
 import AddExercise from "./features/AddExercise";
 import { catalog, type Exercise } from "./lib/catalog";
-import { divisionPosition, rankProgress, isRanked, tierFor, type Profile } from "./engine/ladder";
+import {
+  divisionPosition,
+  rankProgress,
+  strongestFirst,
+  tierFor,
+  type Profile,
+} from "./engine/ladder";
 import { generalElo, rank } from "./engine/ranking";
 import RankCrest from "./components/RankCrest";
 import RankBar from "./components/RankBar";
@@ -93,16 +99,19 @@ function Dashboard({
 }) {
   const rows = useSets();
   const ids = useDashboardIds();
-  const ladder = (ids ?? []).map((id) => ({
-    id,
-    last: !isRanked(id)
-      ? undefined
-      : rows && rank(rows.filter((row) => row.exercise === id)).at(-1),
-  }));
+  const ladder = (ids ?? [])
+    .map((id) => {
+      const last =
+        rows &&
+        rank(
+          rows.filter((row) => row.exercise === id),
+          id,
+        ).at(-1);
+      return { id, last, position: last ? divisionPosition(id, last.best, profile) : null };
+    })
+    .sort(strongestFirst);
   const progress = rankProgress(
-    ladder.flatMap(({ id, last }) =>
-      last && isRanked(id) ? [divisionPosition(id, last.best, profile)] : [],
-    ),
+    ladder.flatMap(({ position }) => (position === null ? [] : [position])),
   );
   const overall = generalElo(ladder.map(({ last }) => last?.rating));
   return (
@@ -131,15 +140,6 @@ function Dashboard({
             <strong>{catalog[id].name}</strong>
             {!rows ? (
               <small>Loading history…</small>
-            ) : !isRanked(id) ? (
-              <>
-                <span>Tracking only</span>
-                <small>
-                  {rows.some((row) => row.exercise === id)
-                    ? "View history →"
-                    : "Log your first set →"}
-                </small>
-              </>
             ) : last ? (
               <>
                 <TileRank label={tierFor(id, last.best, profile)} />
@@ -148,7 +148,11 @@ function Dashboard({
             ) : (
               <>
                 <span>Unranked</span>
-                <small>Log your first set →</small>
+                <small>
+                  {id === "pullUp" && rows.some((row) => row.exercise === id)
+                    ? "Log total load to rank →"
+                    : "Log your first set →"}
+                </small>
               </>
             )}
           </button>

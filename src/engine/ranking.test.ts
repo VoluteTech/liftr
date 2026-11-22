@@ -5,6 +5,29 @@ test("general Elo averages ranked exercises equally and rounds to whole points",
   expect(generalElo([1247, undefined])).toBe(1247);
   expect(generalElo([undefined, undefined])).toBeNull();
 });
+test("rep-only sets use rep bests, not a zero weight estimate", () => {
+  const [first, repeat] = rank(
+    [
+      { kg: 0, reps: 20 },
+      { kg: 0, reps: 20 },
+    ],
+    "pushUp",
+  );
+  expect(first).toMatchObject({ best: 20, next: 21 });
+  expect(first.rating).toBeGreaterThan(1000);
+  expect(repeat.delta).toBe(0);
+});
+test("legacy pull ups stay unscored without shifting later set numbers", () => {
+  expect(
+    rank(
+      [
+        { kg: 0, reps: 18 },
+        { kg: 80, reps: 4 },
+      ],
+      "pullUp",
+    ),
+  ).toMatchObject([{ set: 2, estimate: 90.7 }]);
+});
 test("first benchmark is a win against the 5 kg opponent", () => {
   expect(rank([{ kg: 5, reps: 1 }])[0]).toMatchObject({
     estimate: 5.2,
