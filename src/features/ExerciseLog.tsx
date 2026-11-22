@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import RankBar from "../components/RankBar";
-import { catalog, type Exercise } from "../lib/catalog";
+import { catalog, usesRepsOnly, type Exercise } from "../lib/catalog";
 import { divisionPosition, isRanked, rankProgress } from "../engine/ladder";
 import { LineChart, ResponsiveContainer, Line, YAxis, XAxis, Tooltip } from "recharts";
 import { addSet, useSets, useProfile } from "../db/index";
@@ -8,11 +8,22 @@ import { estimateMax, rank } from "../engine/ranking";
 
 export default function ExerciseLog({ exercise, back }: { exercise: Exercise; back: () => void }) {
   const rows = useSets()?.filter((row) => row.exercise === exercise);
+  const repsOnly = usesRepsOnly(exercise);
+  const totalLoad = exercise === "dips" || exercise === "pullUp";
   const ranked = isRanked(exercise);
   const progress = ranked ? rank(rows ?? []) : [];
   const chart = ranked
     ? progress
-    : (rows ?? []).map((row, i) => ({ set: i + 1, estimate: estimateMax(row) }));
+    : (rows ?? []).flatMap((row, i) =>
+        exercise === "pullUp" && row.kg === 0
+          ? []
+          : [
+              {
+                set: i + 1,
+                estimate: repsOnly ? row.reps : estimateMax(row),
+              },
+            ],
+      );
   const last = progress.at(-1);
   const profile = useProfile();
   const division =
@@ -27,13 +38,15 @@ export default function ExerciseLog({ exercise, back }: { exercise: Exercise; ba
     event.preventDefault();
     if (busy) return;
     const data = new FormData(event.currentTarget);
-    const input = { kg: Number(data.get("kg")), reps: Number(data.get("reps")) };
+    const input = { kg: repsOnly ? 0 : Number(data.get("kg")), reps: Number(data.get("reps")) };
     setBusy(true);
 
     try {
-      estimateMax(input);
+      if (!repsOnly) estimateMax(input);
       await addSet(exercise, input);
-      setNotice(`Saved ${input.kg} kg × ${input.reps} on this device.`);
+      setNotice(
+        `Saved ${repsOnly ? `${input.reps} reps` : `${input.kg} kg × ${input.reps}`} on this device.`,
+      );
     } catch {
       setNotice("Set not saved. Check your inputs and that browser storage is available.");
     } finally {
@@ -50,7 +63,10 @@ export default function ExerciseLog({ exercise, back }: { exercise: Exercise; ba
       {!ranked ? (
         <section>
           <h3>Tracking only</h3>
-          <p>Log sets and follow your estimated max. This exercise does not affect rank or Elo.</p>
+          <p>
+            Log sets and follow your {repsOnly ? "reps" : "estimated max"}. This exercise does not
+            affect rank or Elo.
+          </p>
         </section>
       ) : (
         <section>
@@ -75,26 +91,35 @@ export default function ExerciseLog({ exercise, back }: { exercise: Exercise; ba
       <section>
         <h3>Register a lift</h3>
         <form onSubmit={save} className="grid grid-cols-2 gap-3">
-          {exercise === "dips" && (
+          {totalLoad && (
             <p className="col-span-2">
               Enter total load: bodyweight plus added weight, or minus assistance.
             </p>
           )}
+          {!repsOnly && (
+            <label>
+              {totalLoad ? "Total load" : "Weight"} (kg)
+              <input
+                required
+                type="number"
+                step="0.1"
+                min="0.1"
+                max="600"
+                name="kg"
+                placeholder="60"
+              />
+            </label>
+          )}
           <label>
-            {exercise === "dips" ? "Total load" : "Weight"} (kg)
+            Reps
             <input
               required
               type="number"
-              step="0.1"
-              min="0.1"
-              max="600"
-              name="kg"
-              placeholder="60"
+              min="1"
+              max={repsOnly ? undefined : 12}
+              name="reps"
+              placeholder="5"
             />
-          </label>
-          <label>
-            Reps
-            <input required type="number" min="1" max="12" name="reps" placeholder="5" />
           </label>
           <button disabled={busy || !rows} className="col-span-2">
             {busy ? "Saving…" : "Save set"}
@@ -103,7 +128,7 @@ export default function ExerciseLog({ exercise, back }: { exercise: Exercise; ba
         <p role="status">{notice}</p>
       </section>
       <section>
-        <h3>Estimated max · kg</h3>
+        <h3>{repsOnly ? "Reps per set" : "Estimated max · kg"}</h3>
         {chart.length > 0 ? (
           <ResponsiveContainer width="100%" height={160}>
             <LineChart data={chart}>
@@ -115,16 +140,20 @@ export default function ExerciseLog({ exercise, back }: { exercise: Exercise; ba
               <Line
                 type="linear"
                 dataKey="estimate"
-                name="Estimated max (kg)"
+                name={repsOnly ? "Reps" : "Estimated max (kg)"}
                 stroke="var(--peach)"
                 isAnimationActive={false}
               />
             </LineChart>
           </ResponsiveContainer>
         ) : (
-          <p>Your trend starts with your first set.</p>
+          <p>
+            {totalLoad
+              ? "Log a set with total load to start your trend."
+              : "Your trend starts with your first set."}
+          </p>
         )}
-        <small>Estimated max (1–12 reps): weight × (1 + reps / 30).</small>
+        {!repsOnly && <small>Estimated max (1–12 reps): weight × (1 + reps / 30).</small>}
       </section>
       <section>
         <h3>Recent sets</h3>
@@ -140,7 +169,9 @@ export default function ExerciseLog({ exercise, back }: { exercise: Exercise; ba
               .map((row, i) => (
                 <li key={row.id}>
                   <b>
-                    {row.kg} kg × {row.reps}
+                    {repsOnly || (exercise === "pullUp" && row.kg === 0)
+                      ? `${row.reps} reps`
+                      : `${row.kg} kg × ${row.reps}`}
                   </b>{" "}
                   {ranked && `· +${progress[rows.length - 1 - i].delta} pts`}
                   <br />

@@ -9,7 +9,13 @@ test("offline search matches names and aliases but excludes current tiles", () =
   expect(searchAvailable("  PARALLEL bar ", defaults)).toEqual(["dips"]);
   expect(searchAvailable("dip", defaults)).toEqual(["dips"]);
   expect(searchAvailable("", exerciseIds)).toEqual([]);
-  expect(searchAvailable("curl", defaults)).toEqual(["barbellCurl"]);
+  expect(searchAvailable("curl", defaults)).toEqual(
+    expect.arrayContaining(["barbellCurl", "preacherCurl", "legCurl"]),
+  );
+  for (const term of ["push ups", "pushups", "push-ups"])
+    expect(searchAvailable(term, defaults)).toContain("pushUp");
+  expect(searchAvailable("triceps extensions", defaults)).toContain("tricepsExtension");
+  expect(searchAvailable("leg extensions", defaults)).toContain("legExtension");
   expect(searchAvailable(" OhP ", defaults)).toEqual(["overheadPress"]);
   expect(searchAvailable("rdl", defaults)).toEqual(["romanianDeadlift"]);
   expect(searchAvailable("unknown", defaults)).toEqual([]);
