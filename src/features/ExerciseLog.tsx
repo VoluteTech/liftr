@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import RankBar from "../components/RankBar";
+import ExerciseRankReveal, { type SavedRank } from "../components/ExerciseRankReveal";
 import { catalog, usesRepsOnly, type Exercise } from "../lib/catalog";
 import { divisionPosition, isRanked, rankProgress } from "../engine/ladder";
 import { LineChart, ResponsiveContainer, Line, YAxis, XAxis, Tooltip } from "recharts";
@@ -31,6 +31,7 @@ export default function ExerciseLog({ exercise, back }: { exercise: Exercise; ba
       ? rankProgress([divisionPosition(exercise, last.best, profile)])
       : null;
 
+  const [savedRank, setSavedRank] = useState<SavedRank | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
 
@@ -43,7 +44,8 @@ export default function ExerciseLog({ exercise, back }: { exercise: Exercise; ba
 
     try {
       if (!repsOnly) estimateMax(input);
-      await addSet(exercise, input);
+      const id = await addSet(exercise, input);
+      if (ranked) setSavedRank({ id, before: division });
       setNotice(
         `Saved ${repsOnly ? `${input.reps} reps` : `${input.kg} kg × ${input.reps}`} on this device.`,
       );
@@ -71,13 +73,17 @@ export default function ExerciseLog({ exercise, back }: { exercise: Exercise; ba
       ) : (
         <section>
           <small>EXERCISE RANK</small>
-          <h2>
-            {!rows || profile === undefined
-              ? "Loading…"
-              : (division?.label ?? (last ? "Profile needed" : "Unranked"))}
-          </h2>
-          {last && <p>{last.rating} Elo</p>}
-          {division && <RankBar {...division} />}
+          {division && last ? (
+            <ExerciseRankReveal
+              division={division}
+              elo={last.rating}
+              saved={savedRank?.id === rows?.at(-1)?.id ? savedRank : null}
+            />
+          ) : (
+            <h2>
+              {!rows || profile === undefined ? "Loading…" : last ? "Profile needed" : "Unranked"}
+            </h2>
+          )}
           <p>
             {!last
               ? "Start at 1000. Log your first set to earn your first rating."
