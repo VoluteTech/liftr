@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { addExercise } from "../db/index";
 import { catalog, searchAvailable, type Exercise } from "../lib/catalog";
+import { isRanked } from "../engine/ranking";
 import "./picker.css";
 
 export default function AddExercise({ active }: { active: Exercise[] }) {
@@ -69,7 +70,7 @@ export default function AddExercise({ active }: { active: Exercise[] }) {
               <li key={id}>
                 <div>
                   <strong>{catalog[id].name}</strong>
-                  <small>Ranked</small>
+                  <small>{isRanked(id) ? "Ranked" : "Tracking only"}</small>
                 </div>
                 <button
                   className="picker-icon"

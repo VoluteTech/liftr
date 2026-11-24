@@ -9,7 +9,7 @@ import {
   tierFor,
   type Profile,
 } from "./engine/ladder";
-import { generalElo, rank } from "./engine/ranking";
+import { generalElo, rank, isRanked, maxSet } from "./engine/ranking";
 import RankCrest from "./components/RankCrest";
 import RankBar from "./components/RankBar";
 import ExerciseLog from "./features/ExerciseLog";
@@ -81,11 +81,12 @@ export default function App() {
   );
 }
 
-function TileRank({ label }: { label: ReturnType<typeof tierFor> }) {
+function TileRank({ label, elo }: { label: ReturnType<typeof tierFor>; elo: number }) {
   return (
-    <span className="flex items-center gap-1">
+    <span className="flex flex-col items-start gap-1 leading-tight [&>svg]:size-12">
       <RankCrest label={label} compact />
-      {label}
+      <span className="text-lg font-bold">{label}</span>
+      <b className="text-base tabular-nums text-(--ink)">{elo} Elo</b>
     </span>
   );
 }
@@ -101,13 +102,14 @@ function Dashboard({
   const ids = useDashboardIds();
   const ladder = (ids ?? [])
     .map((id) => {
-      const last =
-        rows &&
-        rank(
-          rows.filter((row) => row.exercise === id),
-          id,
-        ).at(-1);
-      return { id, last, position: last ? divisionPosition(id, last.best, profile) : null };
+      const sets = rows?.filter((row) => row.exercise === id) ?? [];
+      const last = rank(sets, id).at(-1);
+      return {
+        id,
+        last,
+        max: maxSet(sets),
+        position: last ? divisionPosition(id, last.best, profile) : null,
+      };
     })
     .sort(strongestFirst);
   const progress = rankProgress(
@@ -133,28 +135,41 @@ function Dashboard({
           rows && ids && <p>Log a set on a ranked exercise to start ranking.</p>
         )}
       </header>
-      <h2 className="text-2xl">Your greatest lifts</h2>
+      <h2 className="text-2xl">My lifts</h2>
       <div className="exercise-mosaic">
-        {ladder.map(({ id, last }) => (
-          <button key={id} className="exercise-card" onClick={() => select(id)}>
-            <strong>{catalog[id].name}</strong>
-            {!rows ? (
-              <small>Loading history…</small>
-            ) : last ? (
-              <>
-                <TileRank label={tierFor(id, last.best, profile)} />
-                <small>{last.rating} Elo</small>
-              </>
-            ) : (
-              <>
-                <span>Unranked</span>
-                <small>
-                  {id === "pullUp" && rows.some((row) => row.exercise === id)
-                    ? "Log total load to rank →"
-                    : "Log your first set →"}
-                </small>
-              </>
-            )}
+        {ladder.map(({ id, last, max }) => (
+          <button
+            key={id}
+            className="exercise-card"
+            data-tracking={Boolean(rows) && !isRanked(id)}
+            onClick={() => select(id)}
+          >
+            <div className="flex min-w-0 flex-col items-start gap-1">
+              <strong>{catalog[id].name}</strong>
+              {!rows ? (
+                <small>Loading history…</small>
+              ) : !isRanked(id) ? (
+                <>
+                  <span>Tracking only</span>
+                  {!max && <small>Log your first set →</small>}
+                </>
+              ) : last ? (
+                <TileRank label={tierFor(id, last.best, profile)} elo={last.rating} />
+              ) : (
+                <>
+                  <span>Unranked</span>
+                  <small>
+                    {id === "pullUp" && rows.some((row) => row.exercise === id)
+                      ? "Log total load to rank →"
+                      : "Log your first set →"}
+                  </small>
+                </>
+              )}
+            </div>
+            <small className="self-center text-right">
+              <span className="block">Max</span>
+              {max ? (max.kg ? `${max.kg} kg × ${max.reps}` : `${max.reps} reps`) : "—"}
+            </small>
           </button>
         ))}
       </div>

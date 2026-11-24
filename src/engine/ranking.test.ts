@@ -1,21 +1,37 @@
 import { expect, test } from "vitest";
-import { generalElo, rank } from "./ranking";
+import { exerciseIds } from "../lib/catalog";
+import { generalElo, isRanked, maxSet, rank } from "./ranking";
 test("general Elo averages ranked exercises equally and rounds to whole points", () => {
   expect(generalElo([1247, undefined, 1100, undefined])).toBe(1174);
   expect(generalElo([1247, undefined])).toBe(1247);
   expect(generalElo([undefined, undefined])).toBeNull();
 });
-test("rep-only sets use rep bests, not a zero weight estimate", () => {
-  const [first, repeat] = rank(
-    [
+test("only five exercises earn ratings", () => {
+  expect(exerciseIds.filter(isRanked).sort()).toEqual([
+    "bench",
+    "deadlift",
+    "dips",
+    "pullUp",
+    "squat",
+  ]);
+  for (const id of exerciseIds.filter((id) => !isRanked(id)))
+    expect(rank([{ kg: 20, reps: 10 }], id)).toEqual([]);
+});
+test("max uses heaviest recorded set then highest reps at that load", () => {
+  expect(
+    maxSet([
+      { kg: 30, reps: 12 },
+      { kg: 35, reps: 4 },
+      { kg: 35, reps: 6 },
+    ]),
+  ).toEqual({ kg: 35, reps: 6 });
+  expect(maxSet([])).toBeUndefined();
+  expect(
+    maxSet([
       { kg: 0, reps: 20 },
-      { kg: 0, reps: 20 },
-    ],
-    "pushUp",
-  );
-  expect(first).toMatchObject({ best: 20, next: 21 });
-  expect(first.rating).toBeGreaterThan(1000);
-  expect(repeat.delta).toBe(0);
+      { kg: 0, reps: 12 },
+    ])?.reps,
+  ).toBe(20);
 });
 test("legacy pull ups stay unscored without shifting later set numbers", () => {
   expect(

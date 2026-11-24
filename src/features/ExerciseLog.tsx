@@ -4,14 +4,20 @@ import { catalog, usesRepsOnly, type Exercise } from "../lib/catalog";
 import { divisionPosition, rankProgress } from "../engine/ladder";
 import { LineChart, ResponsiveContainer, Line, YAxis, XAxis, Tooltip } from "recharts";
 import { addSet, useSets, useProfile } from "../db/index";
-import { estimateMax, rank } from "../engine/ranking";
+import { estimateMax, isRanked, rank } from "../engine/ranking";
 
 export default function ExerciseLog({ exercise, back }: { exercise: Exercise; back: () => void }) {
   const rows = useSets()?.filter((row) => row.exercise === exercise);
   const repsOnly = usesRepsOnly(exercise);
   const totalLoad = exercise === "dips" || exercise === "pullUp";
   const progress = rank(rows ?? [], exercise);
-  const chart = progress;
+  const ranked = isRanked(exercise);
+  const chart = ranked
+    ? progress
+    : (rows ?? []).map((row, i) => ({
+        set: i + 1,
+        estimate: repsOnly ? row.reps : estimateMax(row),
+      }));
   const deltas = new Map(progress.map((point) => [point.set, point.delta]));
   const last = progress.at(-1);
   const profile = useProfile();
@@ -32,7 +38,7 @@ export default function ExerciseLog({ exercise, back }: { exercise: Exercise; ba
     try {
       if (!repsOnly) estimateMax(input);
       const id = await addSet(exercise, input);
-      setSavedRank({ id, before: division });
+      if (ranked) setSavedRank({ id, before: division });
       setNotice(
         `Saved ${repsOnly ? `${input.reps} reps` : `${input.kg} kg × ${input.reps}`} on this device.`,
       );
@@ -49,32 +55,35 @@ export default function ExerciseLog({ exercise, back }: { exercise: Exercise; ba
         <small>LIFTR / PERSONAL LADDER</small>
         <h1>{catalog[exercise].name}</h1>
       </header>
-      <section>
-        <small>EXERCISE RANK</small>
-        {division && last ? (
-          <ExerciseRankReveal
-            division={division}
-            elo={last.rating}
-            saved={savedRank?.id === rows?.at(-1)?.id ? savedRank : null}
-          />
-        ) : (
-          <h2>
-            {!rows || profile === undefined ? "Loading…" : last ? "Profile needed" : "Unranked"}
-          </h2>
-        )}
-        <p>
-          {!last
-            ? "Start at 1000. Log your first set to earn your first rating."
-            : last.delta
-              ? `+${last.delta} pts · ${repsOnly ? "New rep best." : "Your estimated max reached new 5 kg benchmarks."}`
-              : "±0 pts · No new benchmark. Repeat and lighter sets never cost points."}
-        </p>
-        <p>
-          {last?.next === null
-            ? "All Elo benchmarks reached."
-            : `Next benchmark: ${last?.next ?? (repsOnly ? 1 : 5)} ${repsOnly ? "reps" : "kg estimated max"}.`}
-        </p>
-      </section>
+      {!ranked ? (
+        <section>
+          <h3>Tracking only</h3>
+          <p>Your sets and history are saved without affecting Elo or rank.</p>
+        </section>
+      ) : (
+        <section>
+          <small>EXERCISE RANK</small>
+          {division && last ? (
+            <ExerciseRankReveal
+              division={division}
+              elo={last.rating}
+              saved={savedRank?.id === rows?.at(-1)?.id ? savedRank : null}
+            />
+          ) : (
+            <h2>
+              {!rows || profile === undefined ? "Loading…" : last ? "Profile needed" : "Unranked"}
+            </h2>
+          )}
+          <p>
+            {!last
+              ? "Start at 1000. Log your first set to earn your first rating."
+              : last.delta
+                ? `+${last.delta} pts · Your estimated max reached new 5 kg benchmarks.`
+                : "±0 pts · No new benchmark. Repeat and lighter sets never cost points."}
+          </p>
+          <p>Next benchmark: {last?.next ?? 5} kg estimated max.</p>
+        </section>
+      )}
       <section>
         <h3>Register a lift</h3>
         <form onSubmit={save} className="grid grid-cols-2 gap-3">
